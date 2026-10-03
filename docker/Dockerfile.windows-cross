@@ -1,0 +1,53 @@
+# Cross-compiles AuraOS to a Windows NSIS installer from Linux.
+#
+# The Windows target links against WebView2 (not webkit2gtk), so this image does
+# not need the GTK/WebKit development packages that block the Linux build on
+# this host. It does need the NSIS compiler, LLVM (for llvm-rc and the LLD
+# linker) and cargo-xwin (which downloads the Windows SDK headers/libs).
+#
+# libayatana-appindicator3-dev looks unnecessary for a Windows target, but the
+# Tauri CLI probes pkg-config for an appindicator library whenever the crate has
+# the `tray-icon` feature enabled and panics on Linux hosts when it finds none.
+FROM rust:1.95-bookworm
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      nsis \
+      lld llvm clang \
+      pkg-config \
+      curl ca-certificates \
+      xz-utils \
+      libayatana-appindicator3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node 18 ships in bookworm; the Vite build needs a newer one.
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable && corepack prepare pnpm@11.6.0 --activate
+
+RUN rustup target add x86_64-pc-windows-msvc \
+    && cargo install --locked cargo-xwin
+
+# Debian bookworm ships NSIS 3.08, which predates Include/Win/RestartManager.nsh —
+# a header Tauri's installer.nsi requires. The upstream 3.11 release has it (its
+# makensis is Windows-only, so we keep Debian's makensis binary and overlay only
+# the script data: Include, Stubs, Plugins and Contrib).
+RUN curl -fsSL "https://sourceforge.net/projects/nsis/files/NSIS%203/3.11/nsis-3.11.zip/download" -o /tmp/nsis.zip \
+    && mkdir -p /tmp/nsis \
+    && unzip -q /tmp/nsis.zip -d /tmp/nsis \
+    && NSIS_DIR="$(echo /tmp/nsis/nsis-*)" \
+    && cp -r "$NSIS_DIR/Include/." /usr/share/nsis/Include/ \
+    && cp -r "$NSIS_DIR/Stubs/." /usr/share/nsis/Stubs/ \
+    && cp -r "$NSIS_DIR/Plugins/." /usr/share/nsis/Plugins/ \
+    && cp -r "$NSIS_DIR/Contrib/." /usr/share/nsis/Contrib/ \
+    && rm -rf /tmp/nsis /tmp/nsis.zip \
+    && test -f /usr/share/nsis/Include/Win/RestartManager.nsh
+
+ENV XWIN_CACHE_DIR=/opt/xwin-cache
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+ENV PKG_CONFIG_ALLOW_CROSS=1
+
+WORKDIR /src
