@@ -1,0 +1,41 @@
+{
+  "name": "@auraos/api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "db:generate": "prisma generate --config ../../prisma.config.ts",
+    "db:migrate": "prisma migrate dev --config ../../prisma.config.ts",
+    "db:push": "prisma db push --config ../../prisma.config.ts",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@auraos/validation": "workspace:*",
+    "@fastify/cors": "^11.0.0",
+    "@fastify/rate-limit": "^10.0.0",
+    "@fastify/swagger": "^9.0.0",
+    "@fastify/swagger-ui": "^5.0.0",
+    "@prisma/client": "^7.0.0",
+    "better-auth": "^1.0.0",
+    "dotenv": "^16.0.0",
+    "fastify": "^5.0.0",
+    "fastify-plugin": "^5.0.0",
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0",
+    "zod": "^3.24.0",
+    "@prisma/adapter-pg": "^7.0.0",
+    "pg": "^8.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "prisma": "^7.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "@types/pg": "^8.11.0"
+  }
+}
