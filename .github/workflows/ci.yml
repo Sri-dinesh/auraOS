@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typescript:
+    name: Typecheck + build (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @auraos/api db:generate
+        env:
+          DATABASE_URL: postgresql://user:pass@localhost:5432/auraos
+          DIRECT_URL: postgresql://user:pass@localhost:5432/auraos
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests (rules engine)
+        run: pnpm --filter @auraos/rules test
+
+      - name: Build desktop frontend
+        run: pnpm --filter @auraos/desktop exec vite build
+
+      - name: Build API
+        run: pnpm --filter @auraos/api build
+
+  rust:
+    name: Rust core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install GTK/WebKit deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libxdo-dev \
+            pkg-config
+
+      - name: Check
+        run: cargo check --lib
+        working-directory: apps/desktop/src-tauri
+
+      - name: Clippy
+        run: cargo clippy --lib -- -D warnings
+        working-directory: apps/desktop/src-tauri
+
+      - name: Format
+        run: cargo fmt --check
+        working-directory: apps/desktop/src-tauri
+
+      - name: Unit tests
+        run: cargo test --lib
+        working-directory: apps/desktop/src-tauri
