@@ -1,0 +1,8 @@
+{
+  "name": "@auraos/config",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "eslint-config"
+  ]
+}
