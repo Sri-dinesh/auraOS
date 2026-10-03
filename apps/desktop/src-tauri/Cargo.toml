@@ -1,0 +1,47 @@
+[package]
+name = "auraos"
+version = "0.1.0"
+description = "AuraOS — context-aware desktop layer"
+authors = ["AuraOS"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "auraos_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png", "protocol-asset"] }
+tauri-plugin-store = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-os = "2"
+tauri-plugin-process = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["time", "sync", "rt-multi-thread", "macros"] }
+thiserror = "2"
+muda = "0.20"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[features]
+# Enabled by tauri's custom-protocol on production builds.
+custom-protocol = ["tauri/custom-protocol"]
+# Gates the tauri/muda error conversions. On by default; disable it when
+# compiling the pure-logic modules standalone (see scripts/test-rust-core.sh).
+default = ["tauri-host"]
+tauri-host = []
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AuraOS",
+  "version": "0.1.0",
+  "identifier": "app.auraos.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "AuraOS",
+        "width": 1180,
+        "height": 780,
+        "minWidth": 940,
+        "minHeight": 620,
+        "resizable": true,
+        "decorations": false,
+        "transparent": true,
+        "center": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' asset: data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ipc: http://ipc.localhost https://api.auraos.app",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/**", "$RESOURCE/**"]
+      }
+    },
+    "trayIcon": {
+      "id": "auraos-tray",
+      "iconPath": "icons/icon.png",
+      "tooltip": "AuraOS"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.png"
+    ],
+    "category": "Utility",
+    "shortDescription": "Context-aware desktop layer",
+    "longDescription": "AuraOS recognizes what you are doing and shifts your desktop atmosphere to match."
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["auraos"]
+      }
+    }
+  }
+}
