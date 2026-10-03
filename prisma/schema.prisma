@@ -1,0 +1,225 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Better Auth schema (built-in) ──────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  devices      Device[]
+  scenes       Scene[]
+  rules        SceneRule[]
+  presets      Preset[]  @relation("PresetAuthor")
+  preferences  UserPreference?
+  apiTokens    APIToken[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  oauth_token_secret String?
+  oauth_token       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @db.Text
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique @db.Text
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── AuraOS domain models ───────────────────────────────────
+
+model Device {
+  id          String   @id @default(cuid())
+  userId      String
+  deviceName  String
+  platform    String   // windows | linux | macos
+  architecture String  // x86_64 | aarch64 | arm64
+  osVersion   String
+  appVersion  String
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncState   DeviceSyncState?
+
+  @@index([userId])
+  @@index([platform])
+}
+
+model DeviceSyncState {
+  id              String   @id @default(cuid())
+  deviceId        String   @unique
+  lastSyncAt      DateTime @default(now())
+  pendingChanges  String   @default("[]") // JSON array of entity IDs
+  dirtyCount      Int      @default(0)
+
+  device          Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+}
+
+model Scene {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  slug      String   @unique
+  description String?
+  type      String   @default("custom") // custom | built-in | preset
+
+  // JSON configs — scene configuration evolves quickly
+  visualConfig   Json?
+  audioConfig    Json?
+  widgetConfig   Json?
+  behaviorConfig Json?
+
+  isBuiltIn  Boolean @default(false)
+  isFavorite Boolean @default(false)
+  version    Int     @default(1)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rules       SceneRule[]
+
+  @@index([userId])
+  @@index([slug])
+  @@index([type])
+}
+
+model SceneRule {
+  id           String   @id @default(cuid())
+  sceneId      String
+  userId       String
+  name         String
+  description  String?
+
+  // Conditions stored as JSON for flexibility
+  conditions   Json     // array of Condition objects
+  operator     String   @default("AND") // AND | OR
+
+  action       Json     // RuleAction object
+  priority     Int      @default(0)
+  cooldownMs   Int?
+  enabled      Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  scene        Scene    @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sceneId])
+  @@index([userId])
+  @@index([priority])
+  @@index([enabled])
+}
+
+model Preset {
+  id          String   @id @default(cuid())
+  authorId    String
+
+  name        String
+  description String?
+  thumbnailUrl String?
+
+  // Full scene config for preset downloads
+  sceneConfig Json
+
+  visibility  String   @default("PRIVATE") // PRIVATE | BUILTIN | PUBLIC | UNLISTED
+  downloads   Int      @default(0)
+  likes       Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation("PresetAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([visibility])
+}
+
+model UserPreference {
+  id              String @id @default(cuid())
+  userId          String @unique
+  key             String
+  value           String @db.Text
+
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+}
+
+model ActivityAggregate {
+  id          String   @id @default(cuid())
+  userId      String
+  sceneId     String
+  sceneName   String
+  durationSeconds Int
+  startedAt   DateTime
+  endedAt     DateTime?
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([sceneId])
+  @@index([startedAt])
+}
+
+// ─── Better Auth additional models (for API tokens) ─────────
+
+model APIToken {
+  id          String   @id @default(cuid())
+  name        String?
+  token       String   @unique @db.Text
+  userId      String
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
