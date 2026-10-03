@@ -1,0 +1,28 @@
+node_modules/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Rust
+target/
+
+# Release artifacts (reproducible via scripts/build-windows.sh)
+dist-release/
+AuraOS-Setup.exe
+
+# Tauri generated
+apps/desktop/src-tauri/gen/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log

@@ -1,0 +1,23 @@
+{
+  "name": "auraos",
+  "private": true,
+  "packageManager": "pnpm@11.6.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "dev:desktop": "turbo run dev --filter=@auraos/desktop",
+    "dev:api": "turbo run dev --filter=@auraos/api",
+    "build:desktop": "turbo run build --filter=@auraos/desktop",
+    "build:api": "turbo run build --filter=@auraos/api",
+    "prepublish": "turbo run build --filter=@auraos-*...",
+    "test:rust": "./scripts/test-rust-core.sh"
+  },
+  "devDependencies": {
+    "turbo": "^2.6.1",
+    "@prisma/client": "^7.0.0",
+    "prisma": "^7.0.0"
+  }
+}
