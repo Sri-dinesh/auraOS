@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { useAppStore, useOverlayStore } from './stores';
+import { useAppStore, useOverlayStore, useSceneStore, useAutomationStore } from './stores';
 import { useGlobalShortcut, useContextStream } from './hooks';
 import { Sidebar } from './components/layout/Sidebar';
 import { TitleBar } from './components/layout/TitleBar';
@@ -14,6 +14,8 @@ import {
   LibraryPage,
   SettingsPage,
 } from './pages';
+import { DEFAULT_SCENES } from '@auraos/types';
+import { startSyncLoop, isAuthenticated, registerDevice } from './lib/sync';
 
 
 // ─── Ambient overlay provider ──────────────────────────────
@@ -85,17 +87,49 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
   const setReady = useAppStore((s) => s.setReady);
+  const setAuthenticated = useAppStore((s) => s.setAuthenticated);
+  const setScenes = useSceneStore((s) => s.setScenes);
+  const setRules = useAutomationStore((s) => s.setRules);
 
   useEffect(() => {
-    // Initialize desktop context stream
-    // In production this would be enabled after permissions
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      setReady(true);
-    }, 500);
+    // Initialize built-in scenes if none exist
+    const currentScenes = useSceneStore.getState().scenes;
+    if (currentScenes.length === 0) {
+      setScenes(DEFAULT_SCENES);
+      // Set first built-in scene as active
+      const firstBuiltIn = DEFAULT_SCENES.find((s) => s.isBuiltIn);
+      if (firstBuiltIn) {
+        useSceneStore.getState().setActiveScene(firstBuiltIn.id);
+        useOverlayStore.getState().applySceneVisuals(firstBuiltIn);
+      }
+    }
 
-    return () => clearTimeout(timer);
-  }, [setReady]);
+    // Initialize built-in rules if none exist (could add default rules here)
+    const currentRules = useAutomationStore.getState().rules;
+    if (currentRules.length === 0) {
+      setRules([]);
+    }
+
+    // Initialize desktop context stream and sync
+    const init = async () => {
+      // Check if we have a stored auth token
+      if (isAuthenticated()) {
+        setAuthenticated(true);
+        await registerDevice();
+        startSyncLoop();
+      }
+
+      // Small delay for splash screen
+      setTimeout(() => {
+        setIsLoading(false);
+        setReady(true);
+      }, 500);
+    };
+
+    init();
+
+    return () => {};
+  }, [setReady, setAuthenticated, setScenes, setRules]);
 
   // Register global shortcut
   useGlobalShortcut();
