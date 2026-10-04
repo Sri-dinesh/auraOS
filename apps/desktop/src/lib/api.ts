@@ -53,6 +53,16 @@ export const authApi = {
   getSession: () => request<{ user: unknown; token: string }>('/auth/me'),
   refresh: () => request<{ token: string }>('/auth/refresh'),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
+  signIn: (email: string, password: string) =>
+    request<{ user: unknown; token: string }>('/auth/sign-in/email', {
+      method: 'POST',
+      body: { email, password },
+    }),
+  signUp: (email: string, password: string, name?: string) =>
+    request<{ user: unknown; token: string }>('/auth/sign-up/email', {
+      method: 'POST',
+      body: { email, password, name },
+    }),
 };
 
 // ─── Users ─────────────────────────────────────────────────
